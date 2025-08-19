@@ -1,0 +1,100 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Development files
+.claude
+reference/
+
+# Flutter/Dart build artifacts
+src/build/
+src/.dart_tool/
+
+# Android - generated and sensitive files
+src/android/local.properties
+src/android/app/*.jks
+src/android/app/*.keystore
+src/android/key.properties
+src/android/gradle/wrapper/gradle-wrapper.jar
+
+# iOS - generated and sensitive files
+src/ios/Pods/
+src/ios/Podfile.lock
+src/ios/*.xcworkspace/xcuserdata/
+src/ios/*.xcodeproj/xcuserdata/
+src/ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+src/ios/Flutter/ephemeral/
+src/ios/build/
+src/ios/DerivedData/
+src/ios/*.ipa
+src/ios/*.dSYM.zip
+src/ios/*.mobileprovision
+src/ios/*.p12
+src/ios/*.cer
+
+# macOS - generated files
+src/macos/Pods/
+src/macos/Runner.xcworkspace/xcuserdata/
+src/macos/Runner.xcodeproj/xcuserdata/
+
+# Development files only (keep tests)
+src/tool/
+
+# Log files
+src/flutter_*.log
+
+# IDE files
+*.iml
+
+# Flutter generated files
+src/.flutter-plugins
+src/.flutter-plugins-dependencies
+src/.packages
+src/.pub-cache/
+src/.pub/
+src/coverage/
+src/.metadata
+
+# Platform build artifacts
+src/android/app/debug/
+src/android/app/profile/
+src/android/app/release/
+src/linux/build/
+src/windows/build/
+src/web/build/
+src/macos/build/
+
+# Generated plugin files
+src/ios/Runner/GeneratedPluginRegistrant.*
+src/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+src/macos/Flutter/GeneratedPluginRegistrant.swift
+src/linux/flutter/generated_plugin_registrant.cc
+src/linux/flutter/generated_plugin_registrant.h
+src/linux/flutter/generated_plugins.cmake
+src/windows/flutter/generated_plugin_registrant.cc
+src/windows/flutter/generated_plugin_registrant.h
+src/windows/flutter/generated_plugins.cmake
+
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IDEs
+.idea/
+.vscode/
+*.ipr
+*.iws
+
+# FVM Version Cache
+.fvm/
+.fvmrc
