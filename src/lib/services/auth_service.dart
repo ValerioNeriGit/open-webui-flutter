@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api_client.dart';
+import '../api/api_exception.dart' hide AuthException;
 import '../api/endpoints/auth/auth_endpoints.dart';
 import '../api/endpoints/auth/auth_types.dart';
 import '../utils/logger.dart';
+import 'auth_exception.dart';
 
 
 class AuthService extends ChangeNotifier {
@@ -71,21 +73,26 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> signIn(String serverUrl, String email, String password) async {
+    _setLoading(true);
     try {
-      AppLogger.info('🔑 Attempting sign in for: $email on $serverUrl');
-      _setLoading(true);
-      _serverUrl = serverUrl;
+      // 1. Sanitize URL
+      _serverUrl = _sanitizeUrl(serverUrl);
+      AppLogger.info('🔑 Attempting sign in for: $email on $_serverUrl');
 
       final request = SignInRequest(email: email, password: password);
-      final response = await AuthEndpoints.signIn(serverUrl, request);
+      final response = await AuthEndpoints.signIn(_serverUrl!, request);
       
       _user = User.fromSignInResponse(response);
-      ApiClient.instance.configure(serverUrl, response.token);
+      ApiClient.instance.configure(_serverUrl!, response.token);
       await _saveSession();
       AppLogger.info('✅ Sign in successful for: $email');
+
+    } on ApiException catch (e, stackTrace) {
+      AppLogger.logError('AuthService.signIn() - API Error', e, stackTrace);
+      throw AuthException(_handleApiError(e));
     } catch (error, stackTrace) {
-      AppLogger.logError('AuthService.signIn($email, $serverUrl)', error, stackTrace);
-      rethrow;
+      AppLogger.logError('AuthService.signIn() - Unexpected Error', error, stackTrace);
+      throw AuthException('An unexpected error occurred. Please try again.');
     } finally {
       _setLoading(false);
     }
@@ -103,8 +110,27 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  String _sanitizeUrl(String url) {
+    if (url.endsWith('/')) {
+      return url.substring(0, url.length - 1);
+    }
+    return url;
+  }
 
-
+  String _handleApiError(ApiException e) {
+    switch (e.statusCode) {
+      case 400:
+        return 'Incorrect email or password. Please check your credentials and try again.';
+      case 401:
+        return 'Authentication failed. Please check your credentials.';
+      case 405:
+        return 'Method not allowed. Please check the server URL.';
+      case 500:
+        return 'Server error. Please try again later.';
+      default:
+        return 'An unknown error occurred (Code: ${e.statusCode}). Please check your connection and server URL.';
+    }
+  }
 
   void _setLoading(bool loading) {
     _isLoading = loading;

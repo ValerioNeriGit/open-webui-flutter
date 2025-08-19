@@ -86,8 +86,8 @@ class _ChatHomeScreenContentState extends State<_ChatHomeScreenContent> {
     });
     try {
       AppLogger.info('💬 Selecting chat: $chatId');
-      final chat = await ChatService.getChat(chatId);
       final modelService = Provider.of<ModelService>(context, listen: false);
+      final chat = await ChatService.getChat(chatId);
       
       Model? model;
       if (chat.models.isNotEmpty) {

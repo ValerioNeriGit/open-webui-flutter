@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../services/auth_exception.dart';
 import '../services/auth_service.dart';
 import 'dart:developer' as developer;
 
@@ -37,12 +38,21 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
       // Navigation will be handled by the auth state listener in main.dart
+    } on AuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Colors.red.shade600,
+          ),
+        );
+      }
     } catch (error) {
       developer.log('Sign in failed', error: error);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Sign in failed: $error'),
+            content: Text('An unexpected error occurred: $error'),
             backgroundColor: Colors.red.shade600,
           ),
         );
@@ -115,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   textInputAction: TextInputAction.next,
                                   decoration: const InputDecoration(
                                     labelText: 'Server URL',
-                                    hintText: 'Enter your OpenWebUI URL',
+                                    hintText: 'e.g., https://my-webui.com',
                                     prefixIcon: Icon(Icons.public),
                                   ),
                                   validator: (value) {
