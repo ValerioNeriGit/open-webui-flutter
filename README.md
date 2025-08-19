@@ -26,7 +26,7 @@ A Flutter mobile application for [Open WebUI](https://github.com/open-webui/open
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/open-webui-flutter.git
+   git clone https://github.com/ValerioNeriGit/open-webui-flutter.git
    cd open-webui-flutter
    ```
 
