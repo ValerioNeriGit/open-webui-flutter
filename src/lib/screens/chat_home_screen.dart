@@ -42,16 +42,21 @@ class _ChatHomeScreenContentState extends State<_ChatHomeScreenContent> {
   }
 
   Future<void> _initialize() async {
+    // Ensure models are loaded before trying to load chats
+    await Provider.of<ModelService>(context, listen: false).fetchModels();
     await _loadChats();
   }
 
   Future<void> _loadChats() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
     try {
       AppLogger.info('📁 Loading chats from ChatService');
       final chats = await ChatService.getChats();
+      if (!mounted) return;
+
       AppLogger.info('✅ Successfully loaded ${chats.length} chats');
       
       setState(() {
@@ -73,6 +78,7 @@ class _ChatHomeScreenContentState extends State<_ChatHomeScreenContent> {
       }
     } catch (e, stackTrace) {
       AppLogger.logError('ChatHomeScreen._loadChats()', e, stackTrace);
+      if (!mounted) return;
       _showErrorDialog('Error loading chats', e.toString());
       setState(() {
         _isLoading = false;
@@ -81,6 +87,7 @@ class _ChatHomeScreenContentState extends State<_ChatHomeScreenContent> {
   }
 
   Future<void> _selectChat(String chatId) async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
@@ -88,6 +95,7 @@ class _ChatHomeScreenContentState extends State<_ChatHomeScreenContent> {
       AppLogger.info('💬 Selecting chat: $chatId');
       final modelService = Provider.of<ModelService>(context, listen: false);
       final chat = await ChatService.getChat(chatId);
+      if (!mounted) return;
       
       Model? model;
       if (chat.models.isNotEmpty) {
@@ -101,6 +109,7 @@ class _ChatHomeScreenContentState extends State<_ChatHomeScreenContent> {
       });
     } catch (e, stackTrace) {
       AppLogger.logError('ChatHomeScreen._selectChat($chatId)', e, stackTrace);
+      if (!mounted) return;
       _showErrorDialog('Error loading chat history', e.toString());
       setState(() {
         _isLoading = false;
@@ -123,6 +132,7 @@ class _ChatHomeScreenContentState extends State<_ChatHomeScreenContent> {
           prompt: text,
           model: _selectedModel!.id,
         );
+        if (!mounted) return;
         setState(() {
           _currentChat = newChat;
           _chats.insert(0, ChatListItem(id: newChat.id, title: newChat.title));
@@ -130,6 +140,7 @@ class _ChatHomeScreenContentState extends State<_ChatHomeScreenContent> {
         AppLogger.info('✅ New chat created and message sent successfully.');
       } catch (e, stackTrace) {
         AppLogger.logError('ChatHomeScreen._sendMessage(new chat)', e, stackTrace);
+        if (!mounted) return;
         _showErrorDialog('Failed to create new chat', e.toString());
       }
       return;
@@ -148,6 +159,7 @@ class _ChatHomeScreenContentState extends State<_ChatHomeScreenContent> {
       AppLogger.info('✅ Message sent successfully, now reloading chat state.');
 
       final updatedChat = await ChatService.getChat(existingChatId);
+      if (!mounted) return;
       setState(() {
         _currentChat = updatedChat;
       });
@@ -155,6 +167,7 @@ class _ChatHomeScreenContentState extends State<_ChatHomeScreenContent> {
 
     } catch (e, stackTrace) {
       AppLogger.logError('ChatHomeScreen._sendMessage(existing chat)', e, stackTrace);
+      if (!mounted) return;
       _showErrorDialog('Failed to send message', e.toString());
     }
   }
@@ -203,6 +216,7 @@ class _ChatHomeScreenContentState extends State<_ChatHomeScreenContent> {
       drawer: ModelSelectionDrawer(
         selectedModel: _selectedModel,
         onModelSelected: (model) {
+          Provider.of<ModelService>(context, listen: false).saveSelectedModel(model);
           setState(() {
             _selectedModel = model;
           });
