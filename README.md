@@ -192,6 +192,32 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
+## 🌟 Example
+
+Below is an example of the app's capabilities, showcasing its ability to provide detailed responses to user queries:
+
+![Example Screenshot](attachments/example-screenshot.png)
+
+It sounds like you might be talking about a "Captain" from the Marvel universe! There are a couple of prominent ones:
+
+1. **Captain America**
+2. **Captain Marvel**
+
+Could you specify which one you're interested in?
+
+In the meantime, here's information for both:
+
+### If you mean Captain America:
+
+**Steve Rogers (original Captain America):** His last major movie appearance was:
+- *Avengers: Endgame* (2019)
+  - This film concluded his story arc.
+
+**Sam Wilson (current Captain America):** The character of Sam Wilson (formerly Falcon) officially took on the mantle of Captain America in the Disney+ series *The Falcon and The Winter Soldier* (2021). His next movie will be:
+- *Captain America: Brave New World* (expected 2025)
+  - This will be the first solo Captain America movie starring Sam Wilson.
+
+---
 **⭐ Star this repo if you find it useful!**
 
 **🐛 Found a bug?** [Report it here](https://github.com/your-username/open-webui-flutter/issues)
