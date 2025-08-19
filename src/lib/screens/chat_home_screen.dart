@@ -84,60 +84,64 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
 
   Future<void> _sendMessage(String text) async {
     AppLogger.debug('🚀 _sendMessage called with text: "$text"');
-    AppLogger.debug('🔍 Current chat - ID: "${_currentChat?.id}", Title: "${_currentChat?.title}"');
     
+    // If there is no current chat, we are creating a new one.
     if (_currentChat == null) {
-      _showErrorDialog('Error', 'No chat selected');
+      try {
+        AppLogger.info('🆕 Creating new chat with first message...');
+        final newChat = await MessagingService.createChatAndSendFirstMessage(
+          prompt: text,
+          model: 'models/gemini-2.5-flash', // Use the correct model name provided by the user.
+        );
+        setState(() {
+          _currentChat = newChat;
+          // Add the new chat to the top of the sidebar list.
+          _chats.insert(0, ChatListItem(id: newChat.id, title: newChat.title));
+        });
+        AppLogger.info('✅ New chat created and message sent successfully.');
+      } catch (e, stackTrace) {
+        AppLogger.logError('ChatHomeScreen._sendMessage(new chat)', e, stackTrace);
+        _showErrorDialog('Failed to create new chat', e.toString());
+      }
       return;
     }
 
+    // If a chat already exists, send a message to it.
+    final existingChatId = _currentChat!.id;
     try {
-      AppLogger.info('💬 Sending message to chat: ${_currentChat!.id}');
+      AppLogger.info('💬 Sending message to existing chat: $existingChatId');
+      
+      // 1. Send the message. This method returns the AI's response as a String.
       await MessagingService.sendMessage(
-        chatId: _currentChat!.id,
+        chatId: existingChatId,
         currentMessages: _currentChat!.messages,
         model: _currentChat!.models.isNotEmpty ? _currentChat!.models.first : 'llama3.1:latest',
         prompt: text,
       );
-      AppLogger.info('✅ Message sent successfully');
-      
-      // Reload the chat to get the updated state from server
-      await _selectChat(_currentChat!.id);
+      AppLogger.info('✅ Message sent successfully, now reloading chat state.');
+
+      // 2. Reload the chat from the server to get the updated state.
+      final updatedChat = await ChatService.getChat(existingChatId);
+      setState(() {
+        _currentChat = updatedChat;
+      });
+      AppLogger.info('✅ Chat state reloaded successfully.');
 
     } catch (e, stackTrace) {
-      AppLogger.logError('ChatHomeScreen._sendMessage()', e, stackTrace);
+      AppLogger.logError('ChatHomeScreen._sendMessage(existing chat)', e, stackTrace);
       _showErrorDialog('Failed to send message', e.toString());
     }
   }
 
   Future<void> _createNewChat() async {
-    try {
-      AppLogger.info('🆕 Creating new chat');
-      setState(() {
-        _isLoading = true;
-      });
-
-      // Use a default model for new chats - you might want to make this configurable
-      final defaultModels = ['llama3.1:latest']; // Adjust based on your API's available models
-      final newChat = await ChatService.createChat(
-        title: 'New Chat',
-        models: defaultModels,
-      );
-
-      setState(() {
-        _currentChat = newChat;
-        _chats = [ChatListItem(id: newChat.id, title: newChat.title), ..._chats];
-        _isLoading = false;
-      });
-
-      AppLogger.info('✅ New chat created successfully: ${newChat.id}');
-    } catch (e, stackTrace) {
-      AppLogger.logError('ChatHomeScreen._createNewChat()', e, stackTrace);
-      setState(() {
-        _isLoading = false;
-      });
-      _showErrorDialog('Error creating new chat', e.toString());
-    }
+    AppLogger.info('🆕 User clicked "New Chat". Clearing chat view.');
+    setState(() {
+      _currentChat = null;
+      // Close the sidebar after clicking "New Chat"
+      if (_isSidebarOpen) {
+        _isSidebarOpen = false;
+      }
+    });
   }
 
   void _showErrorDialog(String title, String content) {

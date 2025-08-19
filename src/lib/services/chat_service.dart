@@ -28,16 +28,16 @@ class ChatService {
     }
   }
 
-  /// Create a new chat
-  static Future<Chat> createChat({
+  /// Create a new chat and return its ID.
+  static Future<String> createChat({
     required String title,
     required List<String> models,
   }) async {
     try {
       AppLogger.info('🆕 Creating new chat: $title');
-      final chat = await ChatEndpoints.createChat(title: title, models: models);
-      AppLogger.info('✅ Successfully created chat: ${chat.id}');
-      return chat;
+      final chatId = await ChatEndpoints.createChat(title: title, models: models);
+      AppLogger.info('✅ Successfully created chat with ID: $chatId');
+      return chatId;
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Failed to create chat: $e');

@@ -61,13 +61,13 @@ class ChatEndpoints {
 
     if (response.statusCode != 200) {
       throw ApiException(
-        'Failed to update chat: ${response.body}',
+        'Failed to update chat: ${response.response.body}',
         statusCode: response.statusCode,
       );
     }
   }
 
-  static Future<Chat> createChat({
+  static Future<String> createChat({
     required String title,
     required List<String> models,
   }) async {
@@ -82,11 +82,20 @@ class ChatEndpoints {
     );
 
     if (response.statusCode == 200) {
-      final dynamic chatJson = jsonDecode(response.body);
-      return Chat.fromJson(chatJson['chat']);
+      final responseJson = response.body;
+      
+      // The ID is at the root of the response object.
+      final chatId = responseJson['id'] as String?;
+
+      if (chatId != null && chatId.isNotEmpty) {
+        return chatId;
+      } else {
+        // If the root ID is missing, something is wrong with the server response.
+        throw ApiException('Failed to create chat: server response did not include a chat ID.');
+      }
     } else {
       throw ApiException(
-        'Failed to create chat: ${response.body}',
+        'Failed to create chat: ${response.response.body}',
         statusCode: response.statusCode,
       );
     }
@@ -142,7 +151,7 @@ class ChatEndpoints {
     
     if (response.statusCode != 200) {
       throw ApiException(
-        'Failed to update chat with history: ${response.body}',
+        'Failed to update chat with history: ${response.response.body}',
         statusCode: response.statusCode,
       );
     }

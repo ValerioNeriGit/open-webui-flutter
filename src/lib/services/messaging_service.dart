@@ -2,6 +2,8 @@ import '../api/wrappers/send_message/send_message_api.dart';
 import '../api/wrappers/send_message/send_message_types.dart';
 import '../api/api_exception.dart';
 import '../models/chat.dart';
+import '../utils/logger.dart';
+import 'chat_service.dart';
 
 class MessagingService {
   /// Send a message in a chat conversation
@@ -80,5 +82,40 @@ class MessagingService {
       if (e is ApiException) rethrow;
       throw ApiException('Failed to send message: $e');
     }
+  }
+
+  /// Creates a new chat and sends the first message in a single operation.
+  static Future<Chat> createChatAndSendFirstMessage({
+    required String prompt,
+    required String model,
+  }) async {
+    return AppLogger.wrapOperation(
+      'MessagingService.createChatAndSendFirstMessage()',
+      () async {
+        // 1. Create the chat on the backend first to get an ID.
+        final title = prompt.length > 40 ? '${prompt.substring(0, 40)}...' : prompt;
+        final newChatId = await ChatService.createChat(
+          title: title,
+          models: [model],
+        );
+        AppLogger.debug('📄 New chat created with ID: $newChatId');
+
+        // 2. Send the first message to this new chat ID.
+        await sendMessage(
+          chatId: newChatId,
+          currentMessages: [], // It's a new chat, so no previous messages.
+          model: model,
+          prompt: prompt,
+        );
+        AppLogger.debug('📤 First message sent to new chat.');
+
+        // 3. Fetch the final state of the chat from the server.
+        // This is the source of truth and contains all messages.
+        final updatedChat = await ChatService.getChat(newChatId);
+        return updatedChat;
+      },
+      startMessage: '🚀 Creating new chat and sending first message...',
+      successMessage: '✅ New chat created and first message sent successfully.',
+    );
   }
 }

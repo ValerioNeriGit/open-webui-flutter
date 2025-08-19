@@ -3,6 +3,19 @@ import 'package:http/http.dart' as http;
 import 'api_exception.dart';
 import '../utils/logger.dart';
 
+// A wrapper class to hold both the response body and headers.
+class ApiResponse {
+  final http.Response response;
+  final Map<String, dynamic> body;
+  final Map<String, String> headers;
+
+  ApiResponse(this.response)
+      : body = jsonDecode(response.body),
+        headers = response.headers;
+  
+  int get statusCode => response.statusCode;
+}
+
 class ApiClient {
   static final _instance = ApiClient._();
   ApiClient._();
@@ -53,7 +66,8 @@ class ApiClient {
     }
   }
   
-  Future<http.Response> post(String path, Map<String, dynamic> body) async {
+  // Modified to return ApiResponse which includes headers
+  Future<ApiResponse> post(String path, Map<String, dynamic> body) async {
     try {
       AppLogger.debug('🌐 API POST Request', 'URL: $baseUrl$path, Body keys: ${body.keys.join(", ")}');
       final response = await http.post(
@@ -61,8 +75,9 @@ class ApiClient {
         headers: _headers,
         body: jsonEncode(body),
       );
-      AppLogger.debug('✅ API POST Response', 'Status: ${response.statusCode}, URL: $baseUrl$path');
-      return response;
+      // DEBUG: Log the raw response body to diagnose parsing issues.
+      AppLogger.debug('✅ API POST Response', 'Status: ${response.statusCode}, URL: $baseUrl$path, Body: ${response.body}');
+      return ApiResponse(response);
     } catch (e, stackTrace) {
       final error = ApiException('POST request failed: $e');
       AppLogger.logError('ApiClient.post($path)', error, stackTrace);
