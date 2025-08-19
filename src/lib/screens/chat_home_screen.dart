@@ -37,16 +37,31 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
       AppLogger.info('📁 Loading chats from ChatService');
       final chats = await ChatService.getChats();
       AppLogger.info('✅ Successfully loaded ${chats.length} chats');
-      if (chats.isNotEmpty) {
-        AppLogger.debug('🔍 First chat - ID: "${chats.first.id}", Title: "${chats.first.title}"');
-      }
+      
       setState(() {
         _chats = chats;
       });
+
+      // New Logic: Check if the most recent chat was used in the last hour.
       if (chats.isNotEmpty) {
-        await _selectChat(chats.first.id);
+        final mostRecentChat = chats.first;
+        final timeSinceLastUpdate = DateTime.now().difference(mostRecentChat.updatedAt ?? DateTime(1970));
+        
+        if (timeSinceLastUpdate.inHours < 1) {
+          AppLogger.info('🔄 Recent chat found. Loading "${mostRecentChat.title}".');
+          await _selectChat(mostRecentChat.id);
+        } else {
+          AppLogger.info('🕰️ No recent chats found. Defaulting to new chat view.');
+          setState(() {
+            _currentChat = null;
+            _isLoading = false;
+          });
+        }
       } else {
+        // No chats exist, default to new chat view.
+        AppLogger.info('🆕 No chats found. Defaulting to new chat view.');
         setState(() {
+          _currentChat = null;
           _isLoading = false;
         });
       }
