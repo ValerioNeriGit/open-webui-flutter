@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/chat.dart';
@@ -123,9 +125,32 @@ class _ChatHomeScreenContentState extends State<_ChatHomeScreenContent> {
       return;
     }
 
-    AppLogger.debug('🚀 _sendMessage called with text: "$text" and model: "${_selectedModel!.id}"');
-    
+    final userMessage = ChatMessage(
+      id: Random().nextInt(1000000).toString(), // temp ID
+      role: 'user',
+      content: text,
+      timestamp: DateTime.now(),
+    );
+    final thinkingMessage = ChatMessage(
+      id: Random().nextInt(1000000).toString(), // temp ID
+      role: 'assistant',
+      content: 'Thinking...',
+      timestamp: DateTime.now().add(const Duration(milliseconds: 100)),
+    );
+
     if (_currentChat == null) {
+      // Optimistically create a new chat
+      setState(() {
+        _currentChat = Chat(
+          id: 'temp-chat',
+          title: text,
+          models: [_selectedModel!.id],
+          messages: [userMessage, thinkingMessage],
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+      });
+
       try {
         AppLogger.info('🆕 Creating new chat with first message...');
         final newChat = await MessagingService.createChatAndSendFirstMessage(
@@ -141,18 +166,31 @@ class _ChatHomeScreenContentState extends State<_ChatHomeScreenContent> {
       } catch (e, stackTrace) {
         AppLogger.logError('ChatHomeScreen._sendMessage(new chat)', e, stackTrace);
         if (!mounted) return;
+        // Revert optimistic update on failure
+        setState(() {
+          _currentChat = null;
+        });
         _showErrorDialog('Failed to create new chat', e.toString());
       }
       return;
     }
 
+    // Capture the state before the optimistic update
+    final messagesToSend = List<ChatMessage>.from(_currentChat!.messages);
     final existingChatId = _currentChat!.id;
+
+    // Optimistic update for existing chat
+    setState(() {
+      _currentChat!.messages.add(userMessage);
+      _currentChat!.messages.add(thinkingMessage);
+    });
+
     try {
       AppLogger.info('💬 Sending message to existing chat: $existingChatId');
       
       await MessagingService.sendMessage(
         chatId: existingChatId,
-        currentMessages: _currentChat!.messages,
+        currentMessages: messagesToSend,
         model: _selectedModel!.id,
         prompt: text,
       );
@@ -168,6 +206,10 @@ class _ChatHomeScreenContentState extends State<_ChatHomeScreenContent> {
     } catch (e, stackTrace) {
       AppLogger.logError('ChatHomeScreen._sendMessage(existing chat)', e, stackTrace);
       if (!mounted) return;
+      // Revert optimistic update on failure
+      setState(() {
+        _currentChat!.messages.removeWhere((m) => m.id == userMessage.id || m.id == thinkingMessage.id);
+      });
       _showErrorDialog('Failed to send message', e.toString());
     }
   }

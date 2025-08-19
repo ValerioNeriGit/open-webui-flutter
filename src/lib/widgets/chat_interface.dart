@@ -82,22 +82,14 @@ class _ChatInterfaceState extends State<ChatInterface> {
 
   Widget _buildMessage(ChatMessage message) {
     final isUser = message.role == 'user';
+    final isThinking = message.content == 'Thinking...';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8.0),
       child: Row(
         mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isUser)
-            const CircleAvatar(
-              backgroundColor: AppColors.inputBackground,
-              // TODO: Replace with model icon
-              child: Icon(
-                Icons.computer,
-                color: AppColors.primaryText,
-              ),
-            ),
-          if (!isUser) const SizedBox(width: 8),
           Flexible(
             child: Container(
               constraints: BoxConstraints(
@@ -118,18 +110,20 @@ class _ChatInterfaceState extends State<ChatInterface> {
                         height: 1.4,
                       ),
                     )
-                  : MarkdownBody(
-                      data: message.content,
-                      selectable: true,
-                      styleSheet: MarkdownStyleSheet(
-                        p: const TextStyle(
-                          color: AppColors.primaryText,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
-                          height: 1.5,
+                  : isThinking
+                      ? const _ThinkingIndicator()
+                      : MarkdownBody(
+                          data: message.content,
+                          selectable: true,
+                          styleSheet: MarkdownStyleSheet(
+                            p: const TextStyle(
+                              color: AppColors.primaryText,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                              height: 1.5,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
             ),
           ),
         ],
@@ -194,5 +188,57 @@ class _ChatInterfaceState extends State<ChatInterface> {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+}
+
+class _ThinkingIndicator extends StatefulWidget {
+  const _ThinkingIndicator();
+
+  @override
+  State<_ThinkingIndicator> createState() => _ThinkingIndicatorState();
+}
+
+class _ThinkingIndicatorState extends State<_ThinkingIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(3, (index) {
+        return ScaleTransition(
+          scale: Tween(begin: 0.5, end: 1.0).animate(
+            CurvedAnimation(
+              parent: _controller,
+              curve: Interval(0.2 * index, 0.2 * index + 0.4,
+                  curve: Curves.easeInOut),
+            ),
+          ),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 2.0),
+            child: CircleAvatar(
+              radius: 4,
+              backgroundColor: AppColors.primaryText,
+            ),
+          ),
+        );
+      }),
+    );
   }
 }
