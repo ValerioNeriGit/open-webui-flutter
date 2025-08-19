@@ -1,4 +1,3 @@
-import 'dart:convert';
 import '../../api_client.dart';
 import '../../api_exception.dart';
 import 'completion_types.dart';

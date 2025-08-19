@@ -13,10 +13,9 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _urlController = TextEditingController();
   final TextEditingController _emailController =
-      TextEditingController(text: 'valerio.neri@columen.eu');
+      TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  bool _isInitialized = false;
 
   @override
   void dispose() {
@@ -54,11 +53,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
-
-    if (!_isInitialized) {
-      _urlController.text = authService.serverUrl ?? '';
-      _isInitialized = true;
-    }
 
         return Scaffold(
       body: SafeArea(

@@ -15,14 +15,13 @@ class ApiException implements Exception {
 }
 
 class AuthException extends ApiException {
-  AuthException(String message, {int? statusCode}) 
-      : super(message, statusCode: statusCode);
+  AuthException(super.message, {super.statusCode});
 }
 
 class NetworkException extends ApiException {
-  NetworkException(String message) : super(message);
+  NetworkException(super.message) : super();
 }
 
 class ValidationException extends ApiException {
-  ValidationException(String message) : super(message);
+  ValidationException(super.message) : super();
 }

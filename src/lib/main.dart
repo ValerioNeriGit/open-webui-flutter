@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'screens/chat_home_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
+import 'services/model_service.dart';
 import 'utils/colors.dart';
 import 'utils/logger.dart';
 
@@ -27,8 +28,11 @@ class NocoChatApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthService(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => ModelService()),
+      ],
       child: MaterialApp(
         title: 'OpenWebUI',
         theme: ThemeData(
@@ -94,11 +98,9 @@ class NocoChatApp extends StatelessWidget {
             primary: AppColors.accent,
             secondary: AppColors.secondaryBackground,
             surface: AppColors.primaryBackground,
-            background: AppColors.inputBackground,
             onPrimary: AppColors.white,
             onSecondary: AppColors.white,
             onSurface: AppColors.primaryText,
-            onBackground: AppColors.primaryText,
             error: Colors.red,
             onError: AppColors.white,
             brightness: Brightness.dark,
@@ -115,8 +117,26 @@ class NocoChatApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _checkAuthAndLoadModels();
+  }
+
+  void _checkAuthAndLoadModels() {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    if (authService.isAuthenticated) {
+      Provider.of<ModelService>(context, listen: false).fetchModels();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

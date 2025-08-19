@@ -21,6 +21,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _checkAuth() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     await Future.delayed(const Duration(seconds: 2)); // Simulate a delay
+    if (!mounted) return;
     if (authService.isAuthenticated) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const ChatHomeScreen()),

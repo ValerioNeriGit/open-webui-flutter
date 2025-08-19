@@ -40,13 +40,7 @@ A Flutter mobile application for [Open WebUI](https://github.com/open-webui/open
    flutter pub get
    ```
 
-4. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-5. **Run the app**
+4. **Run the app**
    ```bash
    # For development
    flutter run
@@ -77,15 +71,6 @@ flutter build linux --release
 
 # Desktop (Windows)
 flutter build windows --release
-```
-
-## 🔧 Configuration
-
-Create a `.env` file in the `src` directory with your Open WebUI server configuration:
-
-```env
-OPEN_WEBUI_BASE_URL=https://your-openwebui-instance.com
-API_KEY=your-api-key-here
 ```
 
 ## 📖 Development

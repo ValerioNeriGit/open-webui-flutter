@@ -1,32 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 import '../models/chat.dart';
+import '../models/model.dart';
+import '../services/model_service.dart';
 import '../widgets/chat_interface.dart';
 import '../widgets/chat_sidebar.dart';
 import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../services/messaging_service.dart';
 import '../utils/logger.dart';
+import '../widgets/model_selection_drawer.dart';
 
-class ChatHomeScreen extends StatefulWidget {
+class ChatHomeScreen extends StatelessWidget {
   const ChatHomeScreen({super.key});
 
   @override
-  State<ChatHomeScreen> createState() => _ChatHomeScreenState();
+  Widget build(BuildContext context) {
+    return const _ChatHomeScreenContent();
+  }
 }
 
-class _ChatHomeScreenState extends State<ChatHomeScreen> {
+class _ChatHomeScreenContent extends StatefulWidget {
+  const _ChatHomeScreenContent();
+
+  @override
+  State<_ChatHomeScreenContent> createState() => _ChatHomeScreenContentState();
+}
+
+class _ChatHomeScreenContentState extends State<_ChatHomeScreenContent> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   List<ChatListItem> _chats = [];
   Chat? _currentChat;
+  Model? _selectedModel;
   bool _isLoading = true;
   bool _isSidebarOpen = false;
-  final _uuid = Uuid();
 
   @override
   void initState() {
     super.initState();
-    _loadChats();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await _loadChats();
   }
 
   Future<void> _loadChats() async {
@@ -42,7 +58,6 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
         _chats = chats;
       });
 
-      // New Logic: Check if the most recent chat was used in the last hour.
       if (chats.isNotEmpty) {
         final mostRecentChat = chats.first;
         final timeSinceLastUpdate = DateTime.now().difference(mostRecentChat.updatedAt ?? DateTime(1970));
@@ -51,19 +66,10 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
           AppLogger.info('🔄 Recent chat found. Loading "${mostRecentChat.title}".');
           await _selectChat(mostRecentChat.id);
         } else {
-          AppLogger.info('🕰️ No recent chats found. Defaulting to new chat view.');
-          setState(() {
-            _currentChat = null;
-            _isLoading = false;
-          });
+          _createNewChat();
         }
       } else {
-        // No chats exist, default to new chat view.
-        AppLogger.info('🆕 No chats found. Defaulting to new chat view.');
-        setState(() {
-          _currentChat = null;
-          _isLoading = false;
-        });
+        _createNewChat();
       }
     } catch (e, stackTrace) {
       AppLogger.logError('ChatHomeScreen._loadChats()', e, stackTrace);
@@ -81,11 +87,16 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     try {
       AppLogger.info('💬 Selecting chat: $chatId');
       final chat = await ChatService.getChat(chatId);
-      AppLogger.info('✅ Successfully loaded chat with ${chat.messages.length} messages');
-      AppLogger.debug('🔍 Chat details - ID: "${chat.id}", Title: "${chat.title}", Models: ${chat.models}');
-      AppLogger.warning('🚨 CRITICAL: Chat ID loaded as: "${chat.id}" - isEmpty: ${chat.id.isEmpty} - isNull: ${chat.id == null}');
+      final modelService = Provider.of<ModelService>(context, listen: false);
+      
+      Model? model;
+      if (chat.models.isNotEmpty) {
+        model = modelService.getModelById(chat.models.first);
+      }
+      
       setState(() {
         _currentChat = chat;
+        _selectedModel = model ?? modelService.defaultModel;
         _isLoading = false;
       });
     } catch (e, stackTrace) {
@@ -98,19 +109,22 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
   }
 
   Future<void> _sendMessage(String text) async {
-    AppLogger.debug('🚀 _sendMessage called with text: "$text"');
+    if (_selectedModel == null) {
+      _showErrorDialog('No Model Selected', 'Please select a model before sending a message.');
+      return;
+    }
+
+    AppLogger.debug('🚀 _sendMessage called with text: "$text" and model: "${_selectedModel!.id}"');
     
-    // If there is no current chat, we are creating a new one.
     if (_currentChat == null) {
       try {
         AppLogger.info('🆕 Creating new chat with first message...');
         final newChat = await MessagingService.createChatAndSendFirstMessage(
           prompt: text,
-          model: 'models/gemini-2.5-flash', // Use the correct model name provided by the user.
+          model: _selectedModel!.id,
         );
         setState(() {
           _currentChat = newChat;
-          // Add the new chat to the top of the sidebar list.
           _chats.insert(0, ChatListItem(id: newChat.id, title: newChat.title));
         });
         AppLogger.info('✅ New chat created and message sent successfully.');
@@ -121,21 +135,18 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
       return;
     }
 
-    // If a chat already exists, send a message to it.
     final existingChatId = _currentChat!.id;
     try {
       AppLogger.info('💬 Sending message to existing chat: $existingChatId');
       
-      // 1. Send the message. This method returns the AI's response as a String.
       await MessagingService.sendMessage(
         chatId: existingChatId,
         currentMessages: _currentChat!.messages,
-        model: _currentChat!.models.isNotEmpty ? _currentChat!.models.first : 'llama3.1:latest',
+        model: _selectedModel!.id,
         prompt: text,
       );
       AppLogger.info('✅ Message sent successfully, now reloading chat state.');
 
-      // 2. Reload the chat from the server to get the updated state.
       final updatedChat = await ChatService.getChat(existingChatId);
       setState(() {
         _currentChat = updatedChat;
@@ -148,11 +159,13 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     }
   }
 
-  Future<void> _createNewChat() async {
+  void _createNewChat() {
     AppLogger.info('🆕 User clicked "New Chat". Clearing chat view.');
+    final modelService = Provider.of<ModelService>(context, listen: false);
     setState(() {
       _currentChat = null;
-      // Close the sidebar after clicking "New Chat"
+      _selectedModel = modelService.defaultModel;
+      _isLoading = false;
       if (_isSidebarOpen) {
         _isSidebarOpen = false;
       }
@@ -176,12 +189,26 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     );
   }
 
+  void _showModelSelection() {
+    _scaffoldKey.currentState?.openDrawer();
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final user = authService.user;
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: ModelSelectionDrawer(
+        selectedModel: _selectedModel,
+        onModelSelected: (model) {
+          setState(() {
+            _selectedModel = model;
+          });
+          Navigator.pop(context);
+        },
+      ),
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.menu),
@@ -191,20 +218,27 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
             });
           },
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'ID: ${_currentChat?.id ?? 'No Chat Selected'}',
-              style: TextStyle(fontSize: 14),
-            ),
-            if (_currentChat?.title != null)
-              Text(
-                'Title: ${_currentChat!.title}',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+        title: InkWell(
+          onTap: _showModelSelection,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    _selectedModel?.name ?? 'Select a Model',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const Icon(Icons.arrow_drop_down, size: 20),
+                ],
               ),
-          ],
+              Text(
+                'Chat ID: ${_currentChat?.id.substring(0, 8) ?? 'New Chat'}',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
         ),
         actions: [
           PopupMenuButton(

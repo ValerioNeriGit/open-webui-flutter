@@ -96,7 +96,7 @@ class ChatSidebar extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+                                  ? Theme.of(context).colorScheme.primary.withAlpha(51)
                                   : null,
                               borderRadius: BorderRadius.circular(8),
                             ),
